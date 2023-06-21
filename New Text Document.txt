@@ -1,0 +1,38 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
+
+class TestAssetBundle extends AssetBundle {
+  @override
+  Future<ByteData> load(String key) async {
+    final Uint8List encoded = utf8.encoder.convert(Uri(path: Uri.encodeFull(key)).path);
+    final ByteData? asset =
+    await ServicesBinding.instance!.defaultBinaryMessenger.send('flutter/assets', encoded.buffer.asByteData());
+    if (asset == null)
+      throw FlutterError('Unable to load asset: $key');
+    return asset;
+  }
+
+  @override
+  Future<String> loadString(String key, {bool cache = true}) async {
+    if (!_fileExists(key)) {
+      throw FlutterError("Asset '$key' not found");
+    }
+    final fileContent = File(key).readAsStringSync();
+    return fileContent;
+  }
+
+  @override
+  Future<T> loadStructuredData<T>(
+      String key, Future<T> Function(String value) parser) {
+    throw UnimplementedError();
+  }
+
+  bool _fileExists(String filePath) {
+    final fileObj = File(filePath);
+    return fileObj.existsSync();
+  }
+}
